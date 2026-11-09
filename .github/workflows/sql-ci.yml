@@ -1,0 +1,67 @@
+
+name: IndexPulse SQL CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sql-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test SQL Server scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SA_PASSWORD="Sql!$(openssl rand -hex 16)"
+
+          docker run -d \
+            --name indexpulse-sql \
+            -e ACCEPT_EULA=Y \
+            -e MSSQL_PID=Developer \
+            -e MSSQL_SA_PASSWORD="$SA_PASSWORD" \
+            mcr.microsoft.com/mssql/server:2022-latest
+
+          READY=0
+          for i in $(seq 1 60); do
+            if docker exec indexpulse-sql \
+              /opt/mssql-tools18/bin/sqlcmd \
+              -S localhost -U sa -P "$SA_PASSWORD" \
+              -C -Q "SELECT 1" >/dev/null 2>&1; then
+              READY=1
+              break
+            fi
+            sleep 3
+          done
+
+          if [ "$READY" -ne 1 ]; then
+            docker logs --tail 100 indexpulse-sql
+            exit 1
+          fi
+
+          : > all-tests.sql
+
+          for name in \
+            00_schema 01_seed 02_baseline \
+            03_indexes 04_optimized \
+            05_reservation_procedure \
+            06_reserve_calls 07_integrity_audit \
+            08_monitoring; do
+            cat "scripts/${name}.sql" >> all-tests.sql
+            printf '\nGO\n' >> all-tests.sql
+          done
+
+          docker cp all-tests.sql \
+            indexpulse-sql:/tmp/all-tests.sql
+
+          docker exec indexpulse-sql \
+            /opt/mssql-tools18/bin/sqlcmd \
+            -S localhost -U sa -P "$SA_PASSWORD" \
+            -C -b -i /tmp/all-tests.sql
