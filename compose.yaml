@@ -1,0 +1,12 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: indexpulse-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SA_PASSWORD:?Set SA_PASSWORD in the environment}"
+    ports: ["14334:1433"]
+    volumes:
+      - indexpulse_data:/var/opt/mssql
+volumes:
+  indexpulse_data:
