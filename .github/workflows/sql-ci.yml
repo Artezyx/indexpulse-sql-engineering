@@ -53,7 +53,7 @@ jobs:
             03_indexes 04_optimized \
             05_reservation_procedure \
             06_reserve_calls 07_integrity_audit \
-            08_monitoring; do
+            08_monitoring 10_security_roles 11_security_verify 12_idempotency_repeat; do
             cat "scripts/${name}.sql" >> all-tests.sql
             printf '\nGO\n' >> all-tests.sql
           done
