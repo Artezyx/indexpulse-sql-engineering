@@ -48,3 +48,9 @@ Before running `09_backup_restore.sql` against the Docker instance, create `/var
 ## Operational discipline
 
 Run the schema and seed scripts **only** on a disposable local database. Backup/restore and index-analysis operations require adequate privileges and should never be executed blindly on a production server. No performance claims are made without measurements.
+
+## Database authorization & repeated-request tests
+Apply `scripts/10_security_roles.sql` after installing the procedure, then
+`scripts/11_security_verify.sql` and `scripts/12_idempotency_repeat.sql`.
+The GitHub Actions SQL job also verifies permission metadata and replay behavior.
+See [SECURITY_AND_LOAD.md](docs/SECURITY_AND_LOAD.md) for opt-in bounded concurrency testing.
